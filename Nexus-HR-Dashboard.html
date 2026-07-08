@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus — HR Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F1115;
+    --surface: #171A21;
+    --surface-2: #1D212A;
+    --border: #262B35;
+    --text: #EDEFF3;
+    --text-muted: #8A90A0;
+    --accent: #4F7CFF;
+    --accent-dim: #4F7CFF22;
+    --pending: #E8A33D;
+    --approved: #43B776;
+    --rejected: #E5484D;
+    --radius: 14px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    min-height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app{
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 28px 22px 60px;
+    background:
+      radial-gradient(1200px 400px at 50% -10%, #4F7CFF14, transparent 60%),
+      var(--bg);
+    min-height: 100dvh;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 26px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .brand{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-mark{
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(145deg, var(--accent), #7C9CFF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px var(--accent-dim);
+  }
+
+  .brand-text h1{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-text p{
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .refresh-btn{
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    padding: 9px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .refresh-btn:hover{ border-color: var(--accent); background: var(--surface-2); }
+  .refresh-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+  .refresh-btn svg{ width: 14px; height: 14px; transition: transform .4s; }
+  .refresh-btn.spinning svg{ animation: spin .7s linear infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  /* ---------- Stats strip ---------- */
+  .stats{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .stat-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .stat-card .n{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .stat-card .l{
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .stat-card.pending .n{ color: var(--pending); }
+
+  /* ---------- Request cards ---------- */
+  .list{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    animation: rise .25s ease;
+    transition: opacity .3s, transform .3s;
+  }
+  @keyframes rise{
+    from{ opacity: 0; transform: translateY(6px); }
+    to{ opacity: 1; transform: translateY(0); }
+  }
+  .card.removing{ opacity: 0; transform: translateX(20px) scale(0.98); }
+
+  .card-top{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .employee{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .employee .avatar{
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .employee .id-label{
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .employee .id-sub{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-muted);
+  }
+
+  .status-chip{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .status-chip.pending{ background: #E8A33D1a; color: var(--pending); }
+  .status-chip.approved{ background: #43B7761a; color: var(--approved); }
+  .status-chip.rejected{ background: #E5484D1a; color: var(--rejected); }
+  .status-chip .dot{ width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  .card-body{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .field{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 11px;
+  }
+  .field .k{
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 3px;
+  }
+  .field .v{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+  }
+
+  .card-actions{
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn{
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .12s, opacity .15s, filter .15s;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn:disabled{ opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn:focus-visible{ outline: 2px solid var(--text); outline-offset: 2px; }
+
+  .btn.approve{ background: var(--approved); color: #06130c; }
+  .btn.approve:hover:not(:disabled){ filter: brightness(1.08); }
+
+  .btn.reject{ background: transparent; border-color: var(--rejected); color: var(--rejected); }
+  .btn.reject:hover:not(:disabled){ background: #E5484D14; }
+
+  .btn svg{ width: 14px; height: 14px; }
+
+  /* ---------- Empty / loading states ---------- */
+  .placeholder{
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .placeholder .brand-mark{ margin: 0 auto 14px; }
+  .placeholder h2{
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    font-size: 16px;
+    margin: 0 0 6px;
+  }
+  .placeholder p{ font-size: 13px; margin: 0; }
+
+  .skeleton{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    height: 128px;
+    position: relative;
+    overflow: hidden;
+  }
+  .skeleton::after{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, #ffffff08, transparent);
+    animation: shimmer 1.4s infinite;
+  }
+  @keyframes shimmer{
+    from{ transform: translateX(-100%); }
+    to{ transform: translateX(100%); }
+  }
+
+  .toast{
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast .dot{ width: 7px; height: 7px; border-radius: 50%; background: var(--approved); flex-shrink: 0; }
+  .toast.error .dot{ background: var(--rejected); }
+
+  @media (max-width: 520px){
+    .card-body{ grid-template-columns: repeat(2, 1fr); }
+    .stats{ grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">N</div>
+      <div class="brand-text">
+        <h1>Nexus HR Dashboard</h1>
+        <p>Leave request approvals</p>
+      </div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+      </svg>
+      Refresh
+    </button>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card pending">
+      <div class="n" id="statPending">–</div>
+      <div class="l">Pending</div>
+    </div>
+    <div class="stat-card">
+      <div class="n" id="statDays">–</div>
+      <div class="l">Total Days Requested</div>
+    </div>
+    <div class="stat-card">
+      <div class="n" id="statEmployees">–</div>
+      <div class="l">Employees Waiting</div>
+    </div>
+  </div>
+
+  <div class="list" id="list">
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+  <span class="dot"></span>
+  <span id="toastText">Done</span>
+</div>
+
+<script>
+  /* =====================================================================
+     CONFIG — paste your two n8n Production Webhook URLs below.
+     ===================================================================== */
+  const GET_PENDING_URL = "https://youssefhany2388.app.n8n.cloud/webhook/get-pending-requests";
+  const UPDATE_REQUEST_URL = "https://youssefhany2388.app.n8n.cloud/webhook/update-leave-request";
+
+  const listEl = document.getElementById('list');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toastText');
+
+  const statPending = document.getElementById('statPending');
+  const statDays = document.getElementById('statDays');
+  const statEmployees = document.getElementById('statEmployees');
+
+  function showToast(message, isError){
+    toastText.textContent = message;
+    toast.classList.toggle('error', !!isError);
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2800);
+  }
+
+  function formatDate(d){
+    if (!d) return '—';
+    const date = new Date(d + 'T00:00:00');
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function renderSkeletons(){
+    listEl.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
+  }
+
+  function renderEmpty(){
+    listEl.innerHTML = `
+      <div class="placeholder">
+        <div class="brand-mark" style="margin:0 auto 14px;width:40px;height:40px;font-size:17px;">N</div>
+        <h2>All caught up</h2>
+        <p>There are no pending leave requests right now.</p>
+      </div>`;
+  }
+
+  function renderError(){
+    listEl.innerHTML = `
+      <div class="placeholder">
+        <h2>Couldn't load requests</h2>
+        <p>Check your webhook URL and try refreshing.</p>
+      </div>`;
+  }
+
+  function renderRequests(requests){
+    if (!requests.length){
+      renderEmpty();
+      updateStats(requests);
+      return;
+    }
+
+    listEl.innerHTML = '';
+    requests.forEach(req => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.id = req.id;
+
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="employee">
+            <div class="avatar">#${req.employee_id}</div>
+            <div>
+              <div class="id-label">Employee ${req.employee_id}</div>
+              <div class="id-sub">Request #${req.id} · submitted ${formatDate(req.request_date)}</div>
+            </div>
+          </div>
+          <div class="status-chip pending"><span class="dot"></span>pending</div>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <div class="k">Start</div>
+            <div class="v">${formatDate(req.start_date)}</div>
+          </div>
+          <div class="field">
+            <div class="k">End</div>
+            <div class="v">${formatDate(req.end_date)}</div>
+          </div>
+          <div class="field">
+            <div class="k">Days</div>
+            <div class="v">${req.days_requested}</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn approve" data-action="approved">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Approve
+          </button>
+          <button class="btn reject" data-action="rejected">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            Reject
+          </button>
+        </div>
+      `;
+
+      card.querySelectorAll('.btn').forEach(btn => {
+        btn.addEventListener('click', () => handleDecision(req.id, btn.dataset.action, card));
+      });
+
+      listEl.appendChild(card);
+    });
+
+    updateStats(requests);
+  }
+
+  function updateStats(requests){
+    statPending.textContent = requests.length;
+    statDays.textContent = requests.reduce((sum, r) => sum + (r.days_requested || 0), 0);
+    statEmployees.textContent = new Set(requests.map(r => r.employee_id)).size;
+  }
+
+  async function loadRequests(){
+    renderSkeletons();
+    refreshBtn.classList.add('spinning');
+    try {
+      const res = await fetch(GET_PENDING_URL);
+      if (!res.ok) throw new Error('Failed: ' + res.status);
+      const raw = await res.json();
+      const requests = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+      renderRequests(requests.filter(r => r.status === 'pending'));
+    } catch (err) {
+      console.error(err);
+      renderError();
+    } finally {
+      refreshBtn.classList.remove('spinning');
+    }
+  }
+
+  async function handleDecision(id, decision, cardEl){
+    const buttons = cardEl.querySelectorAll('.btn');
+    buttons.forEach(b => b.disabled = true);
+
+    try {
+      const res = await fetch(UPDATE_REQUEST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, decision })
+      });
+      if (!res.ok) throw new Error('Failed: ' + res.status);
+      await res.json().catch(() => ({}));
+
+      showToast(decision === 'approved' ? 'Request approved' : 'Request rejected');
+      cardEl.classList.add('removing');
+      setTimeout(() => {
+        cardEl.remove();
+        if (!listEl.querySelector('.card')) renderEmpty();
+        // Refresh stats after removal
+        loadRequests();
+      }, 300);
+
+    } catch (err) {
+      console.error(err);
+      buttons.forEach(b => b.disabled = false);
+      showToast('Something went wrong. Try again.', true);
+    }
+  }
+
+  refreshBtn.addEventListener('click', loadRequests);
+
+  loadRequests();
+</script>
+
+</body>
+</html>
